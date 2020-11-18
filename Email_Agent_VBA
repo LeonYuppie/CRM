@@ -1,0 +1,130 @@
+Sub SendEmailUsingGmail()
+
+    On Error GoTo Err
+
+    Dim NewMail As Object
+    Dim mailConfig As Object
+    Dim fields As Variant
+    Dim msConfigURL As String
+    Dim emailrange As Range
+    Dim PPTApp As PowerPoint.Application
+    Dim PPTShape As PowerPoint.Shape
+    Dim PPTFIle As PowerPoint.Presentation
+    Dim SlideNum As Integer
+    
+    Dim strPresPath As String, strExcelFilePath As String, strNewPresPath As String
+    strPresPath = "C:\Users\LeonV\Desktop\Marketing Materials\Yuppie Client Intro 11.18.2020.pptm"
+    
+    
+    With Application
+        .ScreenUpdating = False
+    End With
+        
+    Set emailrange = Range("H5:H6")
+
+    Set mailConfig = CreateObject("CDO.Configuration")
+
+    ' load all default configurations
+    mailConfig.Load -1
+
+    Set fields = mailConfig.fields
+    
+
+    msConfigURL = "http://schemas.microsoft.com/cdo/configuration"
+
+    With fields
+        'Enable SSL Authentication
+        .Item(msConfigURL & "/smtpusessl") = True
+
+        'Make SMTP authentication Enabled=true (1)
+        .Item(msConfigURL & "/smtpauthenticate") = 1
+
+        'Set the SMTP server and port Details
+        'To get these details you can get on Settings Page of your Gmail Account
+        .Item(msConfigURL & "/smtpserver") = "smtp.gmail.com"
+        .Item(msConfigURL & "/smtpserverport") = 465
+        .Item(msConfigURL & "/sendusing") = 2
+
+        'Set your credentials of your Gmail Account
+        .Item(msConfigURL & "/sendusername") = "Leon@Yuppie.Space"
+        .Item(msConfigURL & "/sendpassword") = "@Yuppie12912!"
+
+        'Update the configuration fields
+        .Update
+
+    End With
+
+'Set All Email Properties
+
+    For Each cell In emailrange
+        If cell.Offset(0, 1).Value <> "" Then
+            If cell.Value Like "?*@?*.?*" And LCase(cell.Offset(0, 1).Value) = "yes" Then
+                Set NewMail = CreateObject("CDO.Message")
+                With NewMail
+                    Set .Configuration = mailConfig
+                    .Subject = "NextGen Student Lead Generation Intro: Yuppie / " & cell.Offset(0, -5).Value
+                    .From = "Leon@Yuppie.Space"
+                    .To = cell.Value
+                    .TextBody = "Hi " & cell.Offset(0, -2).Value & "," & vbNewLine & vbNewLine & _
+                                "My name is " & cell.Offset(0, 3).Value & ", and I'm reaching out to introduce you to Yuppie. We do real estate lead geneartion " & _
+                                "differently. A quick overview of our process: " & vbNewLine & vbNewLine & _
+                                vbTab & "1. We find ideal renters by allowing you to use your existing tenants as your brokers. Tenant referral programs are great, but your tenants don't have a leadgen solution for this method to scale." & vbNewLine & _
+                                vbTab & "2. Our matching algorithm suggests buildings with residents from their peer network, which brings our leads far closer to the purchasing decision than traditional leadGen." & vbNewLine & _
+                                vbTab & "3. It's free to list with us! We only charge for closed leads. No lease. No problem. You won't get a bill from us. But we're pretty confident in our matching algorithm :)" & vbNewLine & _
+                                vbTab & "4. But what really sets us apart is our retention solution - we don't want to bring you leads, we want to bring you communities. Tenants are far more likely to renew their lease if they live in a building of their peers." & vbNewLine & vbNewLine & _
+                                "We integrate with you property management software, whether it's Yardi, RealPage, AppFolio, or a manual solution, so it's really that easy." & vbNewLine & vbNewLine & _
+                                "I'd be happy to field an intro call with you - book me on Calendy at your convenience!" & vbNewLine & vbNewLine & _
+                                "Best," & vbNewLine & vbNewLine & _
+                                cell.Offset(0, 3).Value
+'                               Sets up personalized marketing book
+                                Set PPTApp = CreateObject("PowerPoint.Application")
+                                PPTApp.Visible = msoTrue
+                                Set PPTFIle = PPTApp.Presentations.Open(strPresPath)
+                                SlideNum = 1
+                                PPTFIle.Slides(SlideNum).Select
+                                Set PPTShape = PPTFIle.Slides(SlideNum).Shapes("NameBox")
+                                With PPTShape
+                                    .TextFrame.TextRange.Characters.Text = cell.Offset(0, -5).Value & " Intro"
+                                End With
+                                PPTFIle.Save
+                                PPTFIle.Close
+                                PPTApp.Quit
+                                
+                                Set PPTShape = Nothing
+                                Set PPTFIle = Nothing
+                                Set PPTApp = Nothing
+    
+                    .AddAttachment (strPresPath)
+                    .Send
+                    cell.Offset(0, 2).Value = Format(Now, "mm/dd/yyyy HH:mm:ss")
+                End With
+                Set NewMail = Nothing
+            End If
+        End If
+        Next cell
+    Set mailConfig = Nothing
+    Set fields = Nothing
+                
+
+Exit_Err:
+
+    Set NewMail = Nothing
+    Set mailConfig = Nothing
+    End
+
+Err:
+    Select Case Err.Number
+
+    Case -2147220973  'Could be because of Internet Connection
+        MsgBox " Could be no Internet Connection !!  -- " & Err.Description
+
+    Case -2147220975  'Incorrect credentials User ID or password
+        MsgBox "Incorrect Credentials !!  -- " & Err.Description
+
+    Case Else   'Rest other errors
+        MsgBox "Error occured while sending the email !!  -- " & Err.Description
+    End Select
+
+    Resume Exit_Err
+
+End Sub
